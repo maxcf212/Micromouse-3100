@@ -14,8 +14,8 @@ public:
     Motor( uint8_t pwm_pin, uint8_t in2) :  pwm_pin(pwm_pin), dir_pin(in2) {
         // TODO: Set both pins as output
         pinMode(pwm_pin, OUTPUT);
-        pinMode(in2, OUTPUT);
-        
+        pinMode(dir_pin, OUTPUT);
+
     }
 
 
@@ -31,6 +31,11 @@ public:
         } else {
             digitalWrite(dir_pin, LOW);
         }
+
+        if (abs(pwm) > 255) {
+            pwm = 255;
+        }
+
         analogWrite(pwm_pin, pwm);
         Serial.print("1\n");
 
