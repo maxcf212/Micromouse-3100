@@ -11,14 +11,19 @@ namespace mtrn3100 {
 // The count is stored as a volatile variable due to the high frequency updates. 
 class Encoder {
 public:
-    Encoder(uint8_t enc1, uint8_t enc2) : encoder1_pin(enc1), encoder2_pin(enc2) {
-        instance = this;  // Store the instance pointer
+    Encoder(uint8_t enc1, uint8_t enc2, int id) : encoder1_pin(enc1), encoder2_pin(enc2) {
         pinMode(encoder1_pin, INPUT_PULLUP);
         pinMode(encoder2_pin, INPUT_PULLUP);
 
         // TODO: attach the interrupt on pin one such that it calls the readEncoderISR function on a rising edge
-        attachInterrupt(digitalPinToInterrupt(encoder1_pin), readEncoderISR, RISING);
-
+        if (id == 1) {
+            instance1 = this;
+            attachInterrupt(digitalPinToInterrupt(encoder1_pin), readEncoderISR1, RISING);
+        } 
+        else if (id == 2) {
+            instance2 = this;
+            attachInterrupt(digitalPinToInterrupt(encoder1_pin), readEncoderISR2, RISING);
+        }
     }
 
 
@@ -29,42 +34,53 @@ public:
         // NOTE: DO NOT PLACE SERIAL PRINT STATEMENTS IN THIS FUNCTION
         // NOTE: DO NOT CALL THIS FUNCTION MANUALLY IT WILL ONLY WORK IF CALLED BY THE INTERRUPT
         // TODO: Increase or Decrease the count by one based on the reading on encoder pin 2
-        if (digitalRead(encoder1_pin) == HIGH) {
-            count++;  // Clockwise
-        } else {
-            count--;  // Counter-clockwise
+        if (digitalRead(encoder2_pin) == HIGH) {
+        count++;
+        } 
+        else {
+        count--;
         }
+
         interrupts();
     }
 
-    // Helper function which to convert encouder count to radians(distance)
+    // Helper function which to convert encouder count to radians
     float getRotation() {
         // TODO: Convert encoder count to radians
-        const float wheel_circumference = PI * 32.0; // 32 mm diameter
-        return (count * wheel_circumference) / counts_per_revolution;
+        if (counts_per_revolution == 0) {
+            return 0;
+        } 
+        return (2.0f * M_PI * count) / counts_per_revolution;
     }
 
 private:
-    static void readEncoderISR() {
-        if (instance != nullptr) {
-            instance->readEncoder();
+    static void readEncoderISR1() {
+        if (instance1 != nullptr) {
+            instance1->readEncoder();
         }
     }
+
+    static void readEncoderISR2() {
+        if (instance2 != nullptr) {
+            instance2->readEncoder();
+        }
+    }
+
+    static Encoder* instance1;
+    static Encoder* instance2;
 
 public:
     const uint8_t encoder1_pin;
     const uint8_t encoder2_pin;
     volatile int8_t direction;
     float position = 0;
-    uint16_t counts_per_revolution = 750; //TODO: Identify how many encoder counts are in one rotation
+    uint16_t counts_per_revolution = 0;
     volatile long count = 0;
     uint32_t prev_time;
     bool read = false;
-
-private:
-    static Encoder* instance;
 };
 
-Encoder* Encoder::instance = nullptr;
+Encoder* Encoder::instance1 = nullptr;
+Encoder* Encoder::instance2 = nullptr;
 
 }  // namespace mtrn3100

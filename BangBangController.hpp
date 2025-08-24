@@ -10,11 +10,16 @@ public:
 
     // Compute the output signal required from the current/actual value.
     float compute(float input) {
-        error = setpoint - (input - zero_ref);
-
-        // TODO: IMPLIMENT BANG BANG CONTROLLER - REFER TO THE TUTORIAL SLIDES
-        output = 0;
-
+      error = setpoint - (input - zero_ref);
+      if (fabs(error) <= deadband) {
+      output = 0;
+      } 
+      else if (error > 0) {
+      output = speed;
+      } 
+      else {
+      output = -speed;
+      }
         return output;
     }
 
@@ -26,8 +31,8 @@ public:
 
     // Setting function used to update internal parameters
     void tune(float speed, float deadband) {
-      speed = speed;
-      deadband = deadband;
+      this->speed = speed;
+      this->deadband = deadband;
     }
 
     // This must be called before trying to achieve a setpoint.

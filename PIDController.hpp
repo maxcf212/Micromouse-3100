@@ -6,69 +6,67 @@ namespace mtrn3100 {
 
 class PIDController {
 public:
-    PIDController(float kp, float ki, float kd) : kp(kp), ki(ki), kd(kd) {}
+    PIDController(float kp, float ki, float kd)
+        : kp_(kp), ki_(ki), kd_(kd) {}
 
-    // Compute the output signal required from the current/actual value.
+    // compute new signal
     float compute(float input) {
+        curr_time_ = micros();
+        dt_ = static_cast<float>(curr_time_ - prev_time_) * 1e-6f;
+        prev_time_ = curr_time_;
 
-        curr_time = micros();
-        dt = static_cast<float>(curr_time - prev_time) / 1e6;
-        prev_time = curr_time;
+        float measured = input - zero_reference_;
+        error_ = setpoint_ - measured;
+        integral_ += error_ * dt_;
+        integral_ = constrain(integral_, -integral_max_, integral_max_); //integral limiting
+        derivative_ = (error_ - previous_error_) / dt_;
 
-        if (dt <= 0) dt = 1e-6; //avoid div by 0
+        output_ = (kp_ * error_) + (ki_ * integral_) + (kd_ * derivative_);
+        previous_error_ = error_;
 
-        error = setpoint - (input - zero_ref);
-
-        // TODO: IMPLIMENT PID CONTROLLER
-
-        // calculate new i and d
-        integral += error * dt;
-        derivative = (error - prev_error) / dt;
-
-        // PID output
-        output = (kp * error) + (ki * integral) + (kd * derivative);
-
-        prev_error = error;
-
-        return output;
+        return output_;
     }
 
-    // Function used to return the last calculated error.
-    // The error is the difference between the desired position and current position. 
+    // Tuning
     void tune(float p, float i, float d) {
-        kp = p;
-        ki = i;
-        kd = d;
+        kp_ = p;
+        ki_ = i;
+        kd_ = d;
     }
 
+    // Returns the most recently calculated error value
     float getError() {
-      return error;
+        return error_;
     }
 
-    // This must be called before trying to achieve a setpoint.
-    // The first argument becomes the new zero reference point.
-    // Target is the setpoint value.
-    void zeroAndSetTarget(float zero, float target) {
-        prev_time = micros();
-        zero_ref = zero;
-        setpoint = target;
-        // reset pid state
-        integral = 0;
-        prev_error = 0;
+    // Set initial reference point and desired setpoint
+    void zeroAndSetTarget(float zero_point, float target_value) {
+        prev_time_ = micros();
+        zero_reference_ = zero_point;
+        setpoint_ = target_value;
     }
 
 public:
-    uint32_t prev_time, curr_time = micros();
-    float dt;
+    uint32_t curr_time_ = micros();
+    uint32_t prev_time_;
+    float dt_;
 
 private:
-    float kp, ki, kd;
-    float error, derivative, integral, output;
-    float prev_error = 0;
-    float setpoint = 0;
-    float zero_ref = 0;
+    float kp_, ki_, kd_;
+    float error_ = 0.0f;
+    float previous_error_ = 0.0f;
+    float derivative_ = 0.0f;
+    float integral_ = 0.0f;
+    float output_ = 0.0f;
+    float setpoint_ = 0.0f;
+    float zero_reference_ = 0.0f;
+    const float integral_max_ = 200.0f;
 
-
+    float constrain(float val, float min_val, float max_val) {
+        if (val > max_val) return max_val;
+        if (val < min_val) return min_val;
+        return val;
+    }
 };
 
 }  // namespace mtrn3100

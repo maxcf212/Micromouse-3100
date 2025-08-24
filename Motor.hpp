@@ -15,7 +15,6 @@ public:
         // TODO: Set both pins as output
         pinMode(pwm_pin, OUTPUT);
         pinMode(dir_pin, OUTPUT);
-
     }
 
 
@@ -23,22 +22,16 @@ public:
     // NOTE: a pwm signal > 255 could cause troubles as such ensure that pwm is clamped between 0 - 255.
 
     void setPWM(int16_t pwm) {
-
       // TODO: Output digital direction pin based on if input signal is positive or negative.
       // TODO: Output PWM signal between 0 - 255.
-        if (pwm >= 0) {
-            digitalWrite(dir_pin, HIGH);
-        } else {
-            digitalWrite(dir_pin, LOW);
+        bool forward = pwm >= 0;
+        digitalWrite(dir_pin, forward ? HIGH : LOW);
+        int pwm_magnitude = abs(pwm);
+        if (pwm_magnitude > 255) {
+            pwm_magnitude = 255;
         }
-
-        if (abs(pwm) > 255) {
-            pwm = 255;
-        }
-
-        analogWrite(pwm_pin, pwm);
-        Serial.print("1\n");
-
+        
+        analogWrite(pwm_pin, pwm_magnitude);
     }
 
 private:
